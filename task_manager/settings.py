@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 from . import my_settings
 
@@ -107,3 +108,6 @@ STATIC_URL = 'static/'
 # Default primary key field type
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# User Model
+AUTH_USER_MODEL = 'accounts.User'
