@@ -163,3 +163,4 @@ cython_debug/
 
 # add
 my_settings.py
+migrations
