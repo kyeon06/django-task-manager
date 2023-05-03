@@ -1,11 +1,43 @@
 from django.test import TestCase
-from rest_framework.test import APITestCase
+from django.urls import reverse
+from rest_framework.test import APITestCase, APIRequestFactory
+from rest_framework import status
 from .models import Task, SubTask
 from accounts.models import User
+from .serializers import TaskSerializer, SubTaskSerializer
+from .views import TaskViewSet
 
 class MyTestCase(APITestCase):
+
     def setUp(self):
-        self.user = User.objects.create(username="danbi", team='단비')
+        self.factory = APIRequestFactory()
+
+        self.user1 = User.objects.create(username="danbi", team='단비', password='password')
+        self.user2 = User.objects.create(username="blabla", team='블라블라', password='password')
+
+        self.task1 = Task.objects.create(
+            create_user = self.user1,
+            team = self.user1.team,
+            title = "test title1",
+            content = "test content1",
+            is_complete = False,
+        )
+        self.task2 = Task.objects.create(
+            create_user = self.user2,
+            team = self.user2.team,
+            title = "test title2",
+            content = "test content2",
+            is_complete = False,
+        )
+
+        self.subtask1 = SubTask.objects.create(
+            team = "다래",
+            task = self.task1,
+        )
+        self.subtask2 = SubTask.objects.create(
+            team = "단비",
+            task = self.task1
+        )
 
     # 업무 생성 TEST
     """
@@ -16,8 +48,8 @@ class MyTestCase(APITestCase):
     def test_create_task(self):
         url = '/task/'
         data = {
-            "create_user": self.user.pk,
-            "team": self.user.team,
+            "create_user": self.user1.pk,
+            "team": self.user1.team,
             "title": "test title",
             "content": "test content",
             "is_complete": False,
@@ -32,6 +64,44 @@ class MyTestCase(APITestCase):
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, 201)
+
+
+    # 업무 목록 조회 TEST
+    """
+    1. 하위업무에 본인 팀이 포함되어 있다면 업무 목록에서 함께 조회가 가능
+    2. 하위 업무의 업무 처리 여부를 확인할 수 있어야 함
+    3. 
+    """
+    def test_task_list(self):
+        response = self.client.get('/task/')
+        tasks = Task.objects.all()
+        serializer = TaskSerializer(tasks, many=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, serializer.data)
+
+
+    def test_task_detail(self):
+        response = self.client.get(f'/task/{self.task1.id}/')
+        task = Task.objects.get(id=self.task1.id)
+        serializer = TaskSerializer(task)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, serializer.data)
+
+
+    def test_user_task_list(self):
+        url = reverse('task-list')
+        request = self.factory.get(url)
+        response = TaskViewSet.as_view({'get':'list'})(request)
+
+        user1_tasks = Task.objects.filter(create_user=self.user1)
+        serializer = TaskSerializer(user1_tasks, many=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, serializer.data)
+
+
 
     # # 업무 수정 TEST
     # """
@@ -51,12 +121,3 @@ class MyTestCase(APITestCase):
     # def test_delete_task(self):
     #     pass
     
-
-    # # 업무 목록 조회 TEST
-    # """
-    # 1. 하위업무에 본인 팀이 포함되어 있다면 업무 목록에서 함께 조회가 가능
-    # 2. 하위 업무의 업무 처리 여부를 확인할 수 있어야 함
-    # 3. 
-    # """
-    # def test_list_task(self):
-    #     pass
