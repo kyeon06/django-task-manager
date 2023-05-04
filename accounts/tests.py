@@ -9,6 +9,6 @@ class MyTestCase(APITestCase):
     # 회원가입 test
     def test_create_user(self):
         url = '/user/signup/'
-        data = {'username' : '김윙크', 'password' : 'testpass', 'team' : '단비'}
+        data = {'username' : 'danbi', 'password' : 'testpass', 'team' : '단비'}
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, 201)
