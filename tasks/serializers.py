@@ -2,13 +2,17 @@ from .models import Task, SubTask
 from rest_framework import serializers
 from django.utils import timezone
 
+"""
+create, update 컬럼 조건이 다르므로 따로 분리하여 작성
+"""
 
+# SubTask create Serializer
 class SubTaskCreateSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = SubTask
         fields = ('id', 'team', 'is_complete', 'completed_date',)
 
+# SubTask update Serializer
 class SubTaskUpdateSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=False)
 
@@ -16,6 +20,7 @@ class SubTaskUpdateSerializer(serializers.ModelSerializer):
         model = SubTask
         fields = ('id', 'team', 'is_complete', 'completed_date',)
 
+# Task create Serializer
 class TaskCreateSerializer(serializers.ModelSerializer):
     subtasks = SubTaskCreateSerializer(many=True)
 
@@ -34,6 +39,7 @@ class TaskCreateSerializer(serializers.ModelSerializer):
 
         return task
 
+# Task update Serializer
 class TaskUpdateSerializer(serializers.ModelSerializer):
     subtasks = SubTaskUpdateSerializer(many=True)
 
@@ -66,7 +72,7 @@ class TaskUpdateSerializer(serializers.ModelSerializer):
                 else:
                     SubTask.objects.create(task=instance, **subtask_data)
 
-        # update is_complete of task
+        # 하위 업무가 모두 완료되면 상위 업무 완료하고 완료 날짜 변경
         all_subtasks = instance.subtasks.all()
         if all_subtasks and all(subtask.is_complete for subtask in all_subtasks):
             instance.is_complete = True

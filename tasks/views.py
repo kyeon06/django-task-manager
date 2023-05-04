@@ -7,6 +7,12 @@ from rest_framework.views import APIView
 
 class TaskView(APIView):
 
+    # 조회
+    """
+    1. /task/ : 로그인한 유저가 있다면 해당 유저가 작성한 task와 하위업무로 포함된 task 조회
+    2. /task/{pk} : 해당 pk에 해당하는 task의 정보 조회
+    
+    """
     def get(self, request, **kwargs):
         result_set = []
         if kwargs.get('pk') is None:
@@ -29,6 +35,10 @@ class TaskView(APIView):
             return Response(task_serializer.data, status=status.HTTP_200_OK)
         
 
+    # 생성
+    """
+    /task/{pk} : task를 생성한다.
+    """
     def post(self, request):
         task_serializer = TaskCreateSerializer(data=request.data)
 
@@ -38,7 +48,10 @@ class TaskView(APIView):
         else:
             return Response(task_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-
+    # 수정
+    """
+    /task/{pk} : task를 수정한다.
+    """
     def put(self, request, **kwargs):
         if kwargs.get('pk') is None:
             return Response("잘못된 접근입니다.", status=status.HTTP_400_BAD_REQUEST)
@@ -46,6 +59,7 @@ class TaskView(APIView):
             task_id = kwargs.get('pk')
             task_object = Task.objects.get(id=task_id)
 
+            # 작성자가 아닐 경우 수정하지 못하게 설정
             if self.request.user != task_object.create_user :
                 return Response("수정권한이 없습니다.", status=status.HTTP_400_BAD_REQUEST)
             else:
@@ -56,7 +70,10 @@ class TaskView(APIView):
                 else:
                     return Response("잘못된 요청입니다.", status=status.HTTP_400_BAD_REQUEST)
 
-
+    # 삭제
+    """
+    /task/{pk} : 해당 task 삭제한다.
+    """
     def delete(self, request, **kwargs):
         if kwargs.get('pk') is None:
             return Response("잘못된 요청입니다.", status=status.HTTP_400_BAD_REQUEST)
