@@ -1,11 +1,12 @@
-from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APITestCase, APIRequestFactory
 from rest_framework import status
 from .models import Task, SubTask
 from accounts.models import User
-from .serializers import TaskSerializer, SubTaskSerializer
-from .views import TaskViewSet
+from .serializers import TaskCreateSerializer, TaskUpdateSerializer
+from .views import TaskView
+
+from rest_framework.test import APIClient
 
 class MyTestCase(APITestCase):
 
@@ -75,7 +76,7 @@ class MyTestCase(APITestCase):
     def test_task_list(self):
         response = self.client.get('/task/')
         tasks = Task.objects.all()
-        serializer = TaskSerializer(tasks, many=True)
+        serializer = TaskCreateSerializer(tasks, many=True)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, serializer.data)
@@ -84,35 +85,41 @@ class MyTestCase(APITestCase):
     def test_task_detail(self):
         response = self.client.get(f'/task/{self.task1.id}/')
         task = Task.objects.get(id=self.task1.id)
-        serializer = TaskSerializer(task)
+        serializer = TaskCreateSerializer(task)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, serializer.data)
 
 
-    def test_user_task_list(self):
-        url = reverse('task-list')
-        request = self.factory.get(url)
-        response = TaskViewSet.as_view({'get':'list'})(request)
+    # 업무 수정 TEST
+    """
+    1. 업무 수정 시 하위 업무 담당 팀도 수정 가능
+    2. 하지만 완료된 하위 업무가 있다면 무시
+    3. 작성자 외에 수정 불가능
+    4. 모든 하위 업무가 완료가 되면 상위 업무는 자동으로 완료 처리
+    5. 하위 업무 완료 처리는 소속된 팀만 처리 가능
+    """
+    def test_update_task(self):
 
-        user1_tasks = Task.objects.filter(create_user=self.user1)
-        serializer = TaskSerializer(user1_tasks, many=True)
+        url = f'/task/{self.task1.id}/'
+        data = {
+            "create_user": self.task1.create_user.pk,
+            "team": self.task1.team,
+            "title": "put title",
+            "content": "put content",
+            "is_complete": False,
+            "subtasks": [
+                {
+                    "id" : self.subtask1.pk,
+                    "team" : self.subtask1.team,
+                    "is_complete": False,
+                    "completed_date": None
+                }
+            ]
+        }
+        response = self.client.put(url, data, format='json')
+        self.assertEqual(response.status_code, 200)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data, serializer.data)
-
-
-
-    # # 업무 수정 TEST
-    # """
-    # 1. 업무 수정 시 하위 업무 담당 팀도 수정 가능
-    # 2. 하지만 완료된 하위 업무가 있다면 무시
-    # 3. 작성자 외에 수정 불가능
-    # 4. 모든 하위 업무가 완료가 되면 상위 업무는 자동으로 완료 처리
-    # 5. 하위 업무 완료 처리는 소속된 팀만 처리 가능
-    # """
-    # def test_update_task(self):
-    #     pass
 
     # # 업무 삭제 TEST
     # """
