@@ -63,12 +63,15 @@ class TaskUpdateSerializer(serializers.ModelSerializer):
                 
                 if sub_id:
                     subtask = SubTask.objects.get(id=sub_id)
-                    if not subtask.is_complete:
-                        subtask.is_complete = subtask_data.get('is_complete', subtask.is_complete)
-                        if subtask.is_complete:
-                            subtask.completed_date = timezone.now()
-                    subtask.team = subtask_data.get('team', subtask.team)
-                    subtask.save()
+
+                    # sub task 변경 시 담당 팀이 아닌 경우 완료 상태를 변경 할 수 없다.
+                    if instance.team == subtask.team:
+                        if not subtask.is_complete:
+                            subtask.is_complete = subtask_data.get('is_complete', subtask.is_complete)
+                            if subtask.is_complete:
+                                subtask.completed_date = timezone.now()
+                        subtask.team = subtask_data.get('team', subtask.team)
+                        subtask.save()
                 else:
                     SubTask.objects.create(task=instance, **subtask_data)
 

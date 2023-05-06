@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import Task, SubTask
-from .serializers import TaskCreateSerializer, TaskUpdateSerializer
+from .serializers import TaskCreateSerializer, TaskUpdateSerializer, SubTaskUpdateSerializer
 from rest_framework.views import APIView
 
 class TaskView(APIView):
@@ -37,14 +37,14 @@ class TaskView(APIView):
 
     # 생성
     """
-    /task/{pk} : task를 생성한다.
+    /task/ : task를 생성한다.
     """
     def post(self, request):
         task_serializer = TaskCreateSerializer(data=request.data)
 
         if task_serializer.is_valid():
             task_serializer.save()
-            return Response(task_serializer.data, status=status.HTTP_200_OK)
+            return Response(task_serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(task_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -89,3 +89,25 @@ class TaskView(APIView):
                 # 완료된 작업이 없으면 삭제
                 task_object.delete()
                 return Response("삭제가 완료되었습니다.", status=status.HTTP_200_OK)
+            
+
+class SubTaskView(APIView):
+
+    # 수정
+    def put(self, request, **kwargs):
+        if kwargs.get('pk') is None:
+            return Response("잘못된 접근입니다.", status=status.HTTP_400_BAD_REQUEST)
+        else:
+            subtask_id = kwargs.get('pk')
+            subtask_object = SubTask.objects.get(id=subtask_id)
+
+            # 담당 팀이 아닐 경우 수정하지 못하게 설정
+            if self.request.user.team != subtask_object.team:
+                return Response("수정 권한이 없습니다.", status=status.HTTP_400_BAD_REQUEST)
+            else:
+                update_subtask_serializer = SubTaskUpdateSerializer(subtask_object, data=request.data)
+                if update_subtask_serializer.is_valid(raise_exception=True):
+                    update_subtask_serializer.save()
+                    return Response(update_subtask_serializer.data, status=status.HTTP_200_OK)
+                else:
+                    return Response("잘못된 요청입니다.", status=status.HTTP_400_BAD_REQUEST)
